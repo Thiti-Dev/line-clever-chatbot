@@ -49,15 +49,22 @@ function runProgramLogic() {
 
 
   console.log("old number of entries in learningSeq : " + entryCount2);
-
-  /*entries.insert({ x: now.getTime(), y: 100 - entryCount });
-  entryCount = entries.count();
-
-  console.log("new number of entries in database : " + entryCount);*/
-  /*console.log("");
-  console.log("Wait 4 seconds for the autosave timer to save our new addition and then press [Ctrl-c] to quit")
-  console.log("If you waited 4 seconds, the next time you run this script the numbers should increase by 1");*/
 }
+
+//----- create async ------- //
+/*
+
+
+
+setTimeout(() => {
+  context.sendText(`This is what the timer look like`);
+}, 1000)
+
+
+
+*/
+
+// ------------------------ //
 
 
 const bot = new LineBot({
@@ -66,15 +73,120 @@ const bot = new LineBot({
 });
 
 
+let re = /[ก-๙]/;
+
+//
+
 bot.onEvent(async context => {
     if (context.event.isText) {
         const { text } = context.event.message;
         const text_lower = text.toLowerCase();
-        console.log(text);
+        var split_command = text.split(" "); //split command to webprogrammer
+        var utc = new Date().toJSON().slice(0, 10).replace(/-/g, '/');
+        var date_format = new Date().toLocaleString();
+        var new_format = date_format.split(" ");
+        console.log('[' + new_format[0].replace(',', '') + ']' + '[' + new_format[1] + ']' + ': ' + context.session.user.displayName + ' > ' + text);
         if (text_lower === 'hello' || text_lower === 'hi') {
             await context.sendText('Running....');
         }
-        else if (text_lower.includes("fuck")) {
+        else if (split_command[0] === "#addans") {
+          var sentenceData = db.getCollection("learningSeq");
+          if(split_command.length != 3){
+            await context.sendText(`Please use < #addans [$id] [ans - to space bar] >`);
+          }else{
+            var result = sentenceData.findOne({ '$loki': Number(split_command[1]) });
+            if(result){
+              var complete_converted_to_plain_text_without_dash = split_command[2].replace(/-/g, " ");
+              result.answer.push(complete_converted_to_plain_text_without_dash);
+              sentenceData.update(result);
+              await context.sendText('KEY id:' + split_command[1] + ' successfully added');
+            }else{
+              await context.sendText('KEY id:' + split_command[1] + ' is not found in database');
+            }
+          }
+        }
+        else if(split_command[0] === "#unkans"){
+          var sentenceData = db.getCollection("learningSeq");
+          //var fetched_data = sentenceData.find({ answer: { '$contains': [] }}); // find the empty answer
+          var fetched_data = sentenceData.where(function (obj) {
+            return obj.answer.length === 0;
+          });
+          //console.log("length == " + fetched_data.length);
+          if(fetched_data.length > 0){
+            var final_string = '';
+            for (let x = 0; x < fetched_data.length; x++) {
+              final_string = final_string + 'KEY: ' + fetched_data[x].$loki + ' > ' + fetched_data[x].sentence.join(' ') + '\n'
+            }
+            await context.sendText(final_string);           
+          }else{
+            await context.sendText('All sentence are already set up');
+          }
+        }
+        else if (text_lower === "#show clever") {
+          var sentenceData = db.getCollection("learningSeq");
+          var fetched_data = sentenceData.find(); // find all
+          if (fetched_data.length > 0) {
+            var final_string = '';
+            for (let x = 0; x < fetched_data.length; x++) {
+              final_string = final_string + '[' + fetched_data[x].$loki + ']SENTENCE: ' + fetched_data[x].sentence.join(' ') + '\n'
+            }
+            await context.sendText(final_string);
+          } else {
+            await context.sendText('No sentence in record');
+          }
+        }
+        else if (split_command[0] === "#clever"){
+            if(split_command.length !== 2){
+              await context.sendText(`Please use < #clever [HOW-ARE-YOU] >`);
+            }else{
+              var split_to_store = split_command[1].split("-");
+              var sentenceData = db.getCollection("learningSeq");
+              sentenceData.insert({ sentence: split_to_store , answer: [] });
+              var entryCount = sentenceData.count();
+              var result = sentenceData.findOne({ 'sentence': { '$contains': split_to_store } });
+              await context.sendText('Created id: ' + result.$loki +' total data in learningSeq is ' + entryCount);
+            }
+        }
+        else if (split_command[0] === "#notclever") {
+          var sentenceData = db.getCollection("learningSeq");
+          sentenceData.chain().remove();
+          var entryCount = sentenceData.count();
+          await context.sendText('total data in learningSeq is ' + entryCount);
+        }
+        else{
+          /*var utc = new Date().toJSON().slice(0, 10).replace(/-/g, '/');
+          var date_format = new Date().toLocaleString();
+          var new_format = date_format.split(" ");
+          console.log('[' + new_format[0] + ']' + '[' + new_format + ']' + ': ' + context.session.user.displayName + ' > ' + text);*/
+          
+          var sentenceData = db.getCollection("learningSeq");
+          var search_string_to_array = text_lower.split(" ");
+
+          if(re.test(text_lower)){
+            //เป็นภาษาไทย
+            var fetched_data = sentenceData.where(function (obj) {
+              //return obj.sentence
+              var renew = new RegExp(text, "g");
+              var count = (temp.match(trys) || []).length;
+              if(count > 0){
+                
+              }
+              return (obj.sentence.match(/text_lower/g) || []).length > 0;
+            });
+
+
+
+            await context.sendText("คนไทยนิหว่าา ^_^");
+          }else{
+            var result = sentenceData.findOne({ 'sentence': { '$contains': search_string_to_array } });
+            if(result){
+              await context.sendText(result.answer[0]);
+            }else{
+              await context.sendText('Sorry , i dont know what are you talking about');
+            }
+          }
+        }
+        /*else if (text_lower.includes("fuck")) {
             await context.sendText('ahhhhh bad word');
         }
         else if (text_lower.includes("remember me")) {
@@ -126,7 +238,7 @@ bot.onEvent(async context => {
           } else {
             var userData = db.getCollection("userData");
             var fetched_data = userData.findOne({ name: target_name[1] });
-            if (fetched_data) {
+            if (fetched_data.length > 0) {
               userData.findAndRemove({ name: target_name[1]});
               var entryCount = userData.count();
               await context.sendText('Successful remove ' + target_name[1] + ' now Total users = ' + entryCount);
@@ -144,7 +256,7 @@ bot.onEvent(async context => {
           } else {
             var userData = db.getCollection("userData");
             var fetched_data = userData.findOne({ name: target_name[1]});
-            if(fetched_data){
+            if (fetched_data.length > 0){
               await context.sendText('Mobile phone of ' + target_name[1] + ' is ' + fetched_data.phone);
             }else{
               context.sendText(target_name[1] + ' is not in the database');
@@ -168,7 +280,7 @@ bot.onEvent(async context => {
         }
         else {
             await context.sendText(`ahhhhh i don't understand you `);
-        }
+        }*/
     }
 });
 
