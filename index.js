@@ -26,6 +26,12 @@ function databaseInitialize() {
     userData = db.addCollection("userData");
   }
 
+  var sentenceData = db.getCollection("learningSeq");
+  if (sentenceData === null) {
+    console.log("adding a new learningSeq database");
+    sentenceData = db.addCollection("learningSeq");
+  }
+
   // kick off any program logic or start listening to external events
   runProgramLogic();
 }
@@ -34,10 +40,15 @@ function databaseInitialize() {
 //   lets split out the logic to run 'after' initialization into this 'runProgramLogic' function
 function runProgramLogic() {
   var userData = db.getCollection("userData");
+  var sentenceData = db.getCollection("learningSeq");
+  var entryCount2 = sentenceData.count();
   var entryCount = userData.count();
   var now = new Date();
 
-  console.log("old number of entries in database : " + entryCount);
+  console.log("old number of entries in userData : " + entryCount);
+
+
+  console.log("old number of entries in learningSeq : " + entryCount2);
 
   /*entries.insert({ x: now.getTime(), y: 100 - entryCount });
   entryCount = entries.count();
@@ -71,6 +82,27 @@ bot.onEvent(async context => {
         }
         else if (text_lower.includes("how are you")) {
             await context.sendText('I am very fine , and you?');
+        }
+        else if (text_lower === "clear knowledge") {
+          var sentenceData = db.getCollection("learningSeq");
+          sentenceData.chain().remove();
+          var entryCount = sentenceData.count();
+          await context.sendText('total data in learningSeq is ' + entryCount);
+        }
+        else if (text_lower === "learn") {
+            var sentenceData = db.getCollection("learningSeq");
+            sentenceData.insert({ sentence: ['how','feel','great']});
+            var entryCount = sentenceData.count();
+          await context.sendText('total data in learningSeq is ' + entryCount );
+        }
+        else if (text_lower === "flearn") {
+          var sentenceData = db.getCollection("learningSeq");
+          var result = sentenceData.findOne({ 'sentence': { '$contains': ['how', 'great'] } });
+          if(result){
+            await context.sendText('found 1 id == ' + result.$loki);
+          }else{
+            await context.sendText('that is not exist');
+          }
         }
         else if (text_lower.includes("adduser")){
           
